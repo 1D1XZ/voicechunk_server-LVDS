@@ -1,32 +1,39 @@
-import { Logger } from "./src/utils/Logger.js";
-import { StartPeerServer } from "./src/PeerServer.js";
-import { StartSockerServer } from "./src/SocketServer.js";
-import figlet from 'figlet';
-import { World } from "./src/World.js";
-import { System } from "./src/classes/System.js";
-import packagy from "./package.json" with { type: "json" }
+// index.js
+import express from 'express';
+import http from 'http';
+import { WebSocketServer } from 'ws';
 
-//Inititialize
+const app = express();
+const server = http.createServer(app);
+const wss = new WebSocketServer({ server }); // WebSocket ON
 
-figlet.text(
-    "VoiceChunk",
-    {
-        font: "Graffiti",
-        horizontalLayout: "default",
-        verticalLayout: "default",
-        width: 80,
-        whitespaceBreak: true,
-    },
-    function (err, data) {
-        if (err) {
-            console.log("Something went wrong...");
-            console.dir(err);
-            return;
-        }
-        console.clear();
-        console.log(data.magenta + `\n ==< v${packagy.version} >==\n\n`.magenta);
-        Logger("Starting Server...");
-    }
-)
+const PORT = process.env.PORT || 443;
 
-export const system = new System();
+// Manejamos WebSocket
+wss.on('connection', ws => {
+  console.log('🔌 Cliente WebSocket conectado');
+
+  ws.on('message', msg => {
+    // Aquí puedes reenviar, guardar, etc.
+    console.log('📦 Audio recibido (WebSocket)');
+    // Por ejemplo: reenviar a todos los demás
+    wss.clients.forEach(client => {
+      if (client !== ws && client.readyState === 1) {
+        client.send(msg);
+      }
+    });
+  });
+});
+
+// Mantén los endpoints HTTP existentes
+app.use(express.json());
+app.post('/chunk-update', (req, res) => {
+  // lógica original
+});
+app.get('/nearby', (req, res) => {
+  // lógica original
+});
+
+server.listen(PORT, () => {
+  console.log(`🚀 Server corriendo en puerto ${PORT}`);
+});
